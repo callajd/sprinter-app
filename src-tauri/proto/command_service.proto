@@ -1,0 +1,154 @@
+syntax = "proto3";
+package sprinter.command.v1;
+
+// ─── Service ────────────────────────────────────────────────────────
+
+service CommandService {
+  // Execute a command and stream output in real-time
+  rpc ExecuteCommand(ExecuteCommandRequest) returns (stream CommandEvent);
+
+  // Kill a running command
+  rpc KillCommand(KillCommandRequest) returns (KillCommandResponse);
+
+  // Get a single command by ID
+  rpc GetCommand(GetCommandRequest) returns (GetCommandResponse);
+
+  // List commands with filtering
+  rpc ListCommands(ListCommandsRequest) returns (ListCommandsResponse);
+
+  // Re-attach to a running command's output or replay a finished command's output
+  rpc StreamOutput(StreamOutputRequest) returns (stream CommandEvent);
+
+  // Health check
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// ─── Command Specification ──────────────────────────────────────────
+
+message CommandSpec {
+  oneof spec {
+    ShellCommand shell = 1;
+    // Future: TypedCommand typed = 2;
+  }
+}
+
+message ShellCommand {
+  string command_line = 1;
+  string working_directory = 2;
+  map<string, string> env = 3;
+}
+
+// ─── Execute ────────────────────────────────────────────────────────
+
+message ExecuteCommandRequest {
+  CommandSpec spec = 1;
+}
+
+// Server-streamed events for a running command
+message CommandEvent {
+  string command_id = 1;
+  oneof event {
+    CommandStarted started = 2;
+    OutputChunk output = 3;
+    CommandCompleted completed = 4;
+    CommandFailed failed = 5;
+  }
+}
+
+message CommandStarted {
+  int64 pid = 1;
+  string started_at = 2;
+}
+
+message OutputChunk {
+  OutputStream stream = 1;
+  bytes data = 2;
+  uint64 sequence = 3;
+  string timestamp = 4;
+}
+
+enum OutputStream {
+  OUTPUT_STREAM_UNSPECIFIED = 0;
+  OUTPUT_STREAM_STDOUT = 1;
+  OUTPUT_STREAM_STDERR = 2;
+}
+
+message CommandCompleted {
+  int32 exit_code = 1;
+  string completed_at = 2;
+}
+
+message CommandFailed {
+  string error = 1;
+  string failed_at = 2;
+}
+
+// ─── Kill ───────────────────────────────────────────────────────────
+
+message KillCommandRequest {
+  string command_id = 1;
+  int32 signal = 2; // Unix signal number, default SIGTERM (15)
+}
+
+message KillCommandResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ─── Query ──────────────────────────────────────────────────────────
+
+message GetCommandRequest {
+  string command_id = 1;
+  bool include_output = 2;
+}
+
+message GetCommandResponse {
+  CommandRecord command = 1;
+}
+
+message ListCommandsRequest {
+  CommandStatusFilter status_filter = 1;
+  uint32 limit = 2;
+  uint32 offset = 3;
+}
+
+enum CommandStatusFilter {
+  COMMAND_STATUS_FILTER_ALL = 0;
+  COMMAND_STATUS_FILTER_RUNNING = 1;
+  COMMAND_STATUS_FILTER_COMPLETED = 2;
+  COMMAND_STATUS_FILTER_FAILED = 3;
+}
+
+message ListCommandsResponse {
+  repeated CommandRecord commands = 1;
+  uint32 total_count = 2;
+}
+
+message CommandRecord {
+  string id = 1;
+  CommandSpec spec = 2;
+  string status = 3;
+  optional int32 exit_code = 4;
+  optional int64 pid = 5;
+  string created_at = 6;
+  optional string started_at = 7;
+  optional string completed_at = 8;
+  repeated OutputChunk output_chunks = 9;
+}
+
+// ─── Stream Output ──────────────────────────────────────────────────
+
+message StreamOutputRequest {
+  string command_id = 1;
+  uint64 from_sequence = 2; // resume from this sequence number
+}
+
+// ─── Health ─────────────────────────────────────────────────────────
+
+message PingRequest {}
+
+message PingResponse {
+  string version = 1;
+  uint64 uptime_seconds = 2;
+  uint32 running_commands = 3;
+}
