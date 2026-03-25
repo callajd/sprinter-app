@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { TranscriptTab } from "@/components/issue/TranscriptTab";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 // --- Helpers ---
@@ -319,11 +320,15 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
         <div className="px-6">
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="transcript">Transcript</TabsTrigger>
             <TabsTrigger value="commit" disabled={!commitHash}>Commit</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="details" className="flex-1 min-h-0 overflow-auto p-6">
           <DetailsTab issue={issue} />
+        </TabsContent>
+        <TabsContent value="transcript" className="flex-1 min-h-0 overflow-hidden p-6">
+          <TranscriptTab />
         </TabsContent>
         <TabsContent value="commit" className="flex-1 min-h-0 flex flex-col p-6">
           {commitHash && <CommitTab commitHash={commitHash} />}
