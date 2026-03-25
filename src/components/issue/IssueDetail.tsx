@@ -211,6 +211,9 @@ function CommitTab({ commitHash }: { commitHash: string }) {
   const [loaded, setLoaded] = useState<string | null>(null);
   const isLoadingFiles = useDiffStore((s) => s.isLoadingFiles);
   const error = useDiffStore((s) => s.error);
+  const repoPath = useDiffStore((s) => s.repoPath);
+  const sourceBranch = useDiffStore((s) => s.sourceBranch);
+  const targetBranch = useDiffStore((s) => s.targetBranch);
 
   const loadDiff = useCallback(async (hash: string) => {
     const diffStore = useDiffStore.getState();
@@ -261,10 +264,6 @@ function CommitTab({ commitHash }: { commitHash: string }) {
       </div>
     );
   }
-
-  const repoPath = useDiffStore((s) => s.repoPath);
-  const sourceBranch = useDiffStore((s) => s.sourceBranch);
-  const targetBranch = useDiffStore((s) => s.targetBranch);
 
   return (
     <div className="flex flex-1 min-h-0">
