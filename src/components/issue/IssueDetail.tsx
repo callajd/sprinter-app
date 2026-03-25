@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { TranscriptTab } from "@/components/issue/TranscriptTab";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Info, MessageSquareText, GitCommit } from "lucide-react";
 
 // --- Helpers ---
 
@@ -326,10 +326,10 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
       {/* Tabs */}
       <Tabs defaultValue="details" className="flex-1 min-h-0 flex flex-col mt-4">
         <div className="px-6">
-          <TabsList>
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="transcript">Transcript</TabsTrigger>
-            <TabsTrigger value="commit" disabled={!commitHash}>Commit</TabsTrigger>
+          <TabsList variant="line">
+            <TabsTrigger value="details"><Info className="size-3.5" />Details</TabsTrigger>
+            <TabsTrigger value="transcript"><MessageSquareText className="size-3.5" />Transcript</TabsTrigger>
+            <TabsTrigger value="commit" disabled={!commitHash}><GitCommit className="size-3.5" />Commit</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="details" className="flex-1 min-h-0 overflow-auto p-6">
