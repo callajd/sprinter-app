@@ -1,33 +1,21 @@
+import { useState, useEffect, useCallback } from "react";
 import { useIssueStore, type BeadsIssue, type BeadsRelatedIssue } from "@/issueStore";
 import { navigateToIssue } from "@/lib/beads";
 import { getRepoRoot, getChangedFiles } from "@/lib/git";
 import { useDiffStore } from "@/diffStore";
-import { useAppStore } from "@/store";
+import { DiffFileList } from "@/components/diff/DiffFileList";
+import { DiffEditorPanel } from "@/components/diff/DiffEditorPanel";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
-async function navigateToCommitDiff(commitHash: string) {
-  const diffStore = useDiffStore.getState();
-  diffStore.setError(null);
-  diffStore.setIsLoadingFiles(true);
+// --- Helpers ---
 
-  try {
-    const repoPath = await getRepoRoot();
-    const source = commitHash + "~1";
-    const target = commitHash;
-
-    diffStore.setRepoPath(repoPath);
-    diffStore.setSourceBranch(source);
-    diffStore.setTargetBranch(target);
-
-    const files = await getChangedFiles(repoPath, source, target);
-    diffStore.setFiles(files);
-    useAppStore.getState().setActiveView("diff");
-  } catch (err) {
-    diffStore.setError(err instanceof Error ? err.message : "Failed to load commit diff");
-  } finally {
-    diffStore.setIsLoadingFiles(false);
-  }
+function getCommitHash(issue: BeadsIssue): string | null {
+  const label = issue.labels?.find((l) => l.startsWith("commit:"));
+  return label ? label.slice(7) : null;
 }
 
 const priorityLabels: Record<number, string> = {
@@ -62,6 +50,8 @@ function formatDate(iso: string): string {
     minute: "2-digit",
   });
 }
+
+// --- Small components ---
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -117,24 +107,15 @@ function RelatedIssueRow({ issue }: { issue: BeadsRelatedIssue }) {
   );
 }
 
-function IssueContent({ issue }: { issue: BeadsIssue }) {
+// --- Details tab ---
+
+function DetailsTab({ issue }: { issue: BeadsIssue }) {
   const hasLabels = issue.labels && issue.labels.length > 0;
   const hasDependencies = issue.dependencies && issue.dependencies.length > 0;
   const hasDependents = issue.dependents && issue.dependents.length > 0;
 
   return (
-    <div className="flex-1 p-6 min-h-0 overflow-auto space-y-6">
-      {/* Header */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <code className="text-sm text-muted-foreground">{issue.id}</code>
-          <StatusBadge status={issue.status} />
-          <TypeBadge type={issue.issue_type} />
-          <PriorityBadge priority={issue.priority} />
-        </div>
-        <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
-      </div>
-
+    <div className="p-6 space-y-6 overflow-auto">
       {/* Metadata */}
       <div className="space-y-1.5 border-l-2 border-border pl-4">
         {issue.assignee && <MetadataRow label="Assignee">{issue.assignee}</MetadataRow>}
@@ -160,32 +141,11 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
       {hasLabels && (
         <Section title="Labels">
           <div className="flex gap-1.5 flex-wrap">
-            {issue.labels!.map((label) => {
-              const commitMatch = label.match(/^commit:(.+)$/);
-              if (commitMatch) {
-                return (
-                  <button key={label} onClick={() => navigateToCommitDiff(commitMatch[1])} className="cursor-pointer">
-                    <Badge variant="secondary" className="font-mono text-xs hover:bg-accent transition-colors">
-                      {label}
-                    </Badge>
-                  </button>
-                );
-              }
-              return (
-                <Badge key={label} variant="secondary" className="font-mono text-xs">
-                  {label}
-                </Badge>
-              );
-            })}
-          </div>
-        </Section>
-      )}
-
-      {/* Description */}
-      {issue.description && (
-        <Section title="Description">
-          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
-            {issue.description}
+            {issue.labels!.map((label) => (
+              <Badge key={label} variant="secondary" className="font-mono text-xs">
+                {label}
+              </Badge>
+            ))}
           </div>
         </Section>
       )}
@@ -238,6 +198,137 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
           </div>
         </Section>
       )}
+    </div>
+  );
+}
+
+// --- Commit tab ---
+
+function CommitTab({ commitHash }: { commitHash: string }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const isLoadingFiles = useDiffStore((s) => s.isLoadingFiles);
+  const error = useDiffStore((s) => s.error);
+
+  const loadDiff = useCallback(async (hash: string) => {
+    const diffStore = useDiffStore.getState();
+    diffStore.setError(null);
+    diffStore.setFiles([]);
+    diffStore.selectFile(null);
+    diffStore.setIsLoadingFiles(true);
+
+    try {
+      const repoPath = await getRepoRoot();
+      const source = hash + "~1";
+      const target = hash;
+
+      diffStore.setRepoPath(repoPath);
+      diffStore.setSourceBranch(source);
+      diffStore.setTargetBranch(target);
+
+      const files = await getChangedFiles(repoPath, source, target);
+      diffStore.setFiles(files);
+      setLoaded(hash);
+    } catch (err) {
+      diffStore.setError(err instanceof Error ? err.message : "Failed to load commit diff");
+    } finally {
+      diffStore.setIsLoadingFiles(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (commitHash !== loaded) {
+      loadDiff(commitHash);
+    }
+  }, [commitHash, loaded, loadDiff]);
+
+  if (isLoadingFiles) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">Loading diff...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 p-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
+          <pre className="font-mono text-sm text-destructive whitespace-pre-wrap">{error}</pre>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 min-h-0">
+      {sidebarOpen && (
+        <div className="w-64 border-r border-border flex flex-col min-h-0">
+          <div className="px-2 py-1 border-b border-border flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-mono">{commitHash}</span>
+            <Button variant="ghost" size="icon-xs" onClick={() => setSidebarOpen(false)} title="Collapse file tree">
+              <PanelLeftClose className="size-3.5" />
+            </Button>
+          </div>
+          <DiffFileList />
+        </div>
+      )}
+      <div className="flex-1 flex flex-col min-h-0">
+        {!sidebarOpen && (
+          <div className="px-2 py-1 border-b border-border">
+            <Button variant="ghost" size="icon-xs" onClick={() => setSidebarOpen(true)} title="Expand file tree">
+              <PanelLeftOpen className="size-3.5" />
+            </Button>
+          </div>
+        )}
+        <DiffEditorPanel />
+      </div>
+    </div>
+  );
+}
+
+// --- Main component ---
+
+function IssueContent({ issue }: { issue: BeadsIssue }) {
+  const commitHash = getCommitHash(issue);
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Header */}
+      <div className="p-6 pb-0 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <code className="text-sm text-muted-foreground">{issue.id}</code>
+          <StatusBadge status={issue.status} />
+          <TypeBadge type={issue.issue_type} />
+          <PriorityBadge priority={issue.priority} />
+        </div>
+        <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
+      </div>
+
+      {/* Description */}
+      {issue.description && (
+        <div className="px-6 pt-4">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+            {issue.description}
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="details" className="flex-1 min-h-0 flex flex-col mt-4">
+        <div className="px-6">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="commit" disabled={!commitHash}>Commit</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="details" className="flex-1 min-h-0 overflow-auto">
+          <DetailsTab issue={issue} />
+        </TabsContent>
+        <TabsContent value="commit" className="flex-1 min-h-0 flex flex-col">
+          {commitHash && <CommitTab commitHash={commitHash} />}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
