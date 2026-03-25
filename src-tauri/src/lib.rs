@@ -224,6 +224,13 @@ async fn daemon_status(state: State<'_, Arc<DaemonState>>) -> Result<serde_json:
     }))
 }
 
+#[tauri::command]
+fn get_cwd() -> Result<String, String> {
+    std::env::current_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -244,6 +251,7 @@ pub fn run() {
             get_command_output,
             list_commands,
             daemon_status,
+            get_cwd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

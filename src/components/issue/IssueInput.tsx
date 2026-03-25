@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { executeEphemeralCommand } from "@/lib/tauri";
-import { useIssueStore, type BeadsIssue } from "@/issueStore";
+import { useIssueStore } from "@/issueStore";
+import { navigateToIssue } from "@/lib/beads";
 
 export function IssueInput() {
   const [value, setValue] = useState("");
@@ -12,29 +12,7 @@ export function IssueInput() {
     e.preventDefault();
     const id = value.trim();
     if (!id || isLoading) return;
-
-    const store = useIssueStore.getState();
-    store.setIssueId(id);
-    store.reset();
-    store.setIsLoading(true);
-
-    try {
-      const result = await executeEphemeralCommand("bd show --json " + id);
-      if (result.exit_code === 0) {
-        const parsed: BeadsIssue[] = JSON.parse(result.stdout);
-        if (parsed.length > 0) {
-          store.setIssue(parsed[0]);
-        } else {
-          store.setError("No issue found for " + id);
-        }
-      } else {
-        store.setError(result.stderr || "Command failed with exit code " + result.exit_code);
-      }
-    } catch (err) {
-      store.setError(err instanceof Error ? err.message : "Failed to run bd show");
-    } finally {
-      store.setIsLoading(false);
-    }
+    await navigateToIssue(id);
   }
 
   return (

@@ -91,6 +91,15 @@ export async function daemonStatus(): Promise<{
   return result;
 }
 
+let cachedCwd: string | null = null;
+
+export async function getCwd(): Promise<string> {
+  if (!cachedCwd) {
+    cachedCwd = await invoke<string>("get_cwd");
+  }
+  return cachedCwd;
+}
+
 export function onCommandEvent(
   callback: (event: CommandEvent) => void
 ): Promise<UnlistenFn> {

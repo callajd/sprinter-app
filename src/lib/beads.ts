@@ -1,4 +1,4 @@
-import { executeEphemeralCommand } from "@/lib/tauri";
+import { executeEphemeralCommand, getCwd } from "@/lib/tauri";
 import { useIssueStore, type BeadsIssue, type BeadsIssueSummary } from "@/issueStore";
 
 export async function navigateToIssue(id: string) {
@@ -8,7 +8,8 @@ export async function navigateToIssue(id: string) {
   store.setIsLoading(true);
 
   try {
-    const result = await executeEphemeralCommand("bd show --json " + id);
+    const cwd = await getCwd();
+    const result = await executeEphemeralCommand("bd show --json " + id, cwd);
     if (result.exit_code === 0) {
       const parsed: BeadsIssue[] = JSON.parse(result.stdout);
       if (parsed.length > 0) {
@@ -26,12 +27,16 @@ export async function navigateToIssue(id: string) {
   }
 }
 
-export async function loadOpenIssues() {
+export async function loadIssues(showAll: boolean) {
   const store = useIssueStore.getState();
   store.setIsLoadingList(true);
 
   try {
-    const result = await executeEphemeralCommand("bd list --status open --limit 0 --json");
+    const cwd = await getCwd();
+    const cmd = showAll
+      ? "bd list --limit 0 --json"
+      : "bd list --status open --limit 0 --json";
+    const result = await executeEphemeralCommand(cmd, cwd);
     if (result.exit_code === 0) {
       const parsed: BeadsIssueSummary[] = JSON.parse(result.stdout);
       store.setIssuesList(parsed);
