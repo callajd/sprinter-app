@@ -1,4 +1,5 @@
 import type { BeadsRelatedIssue } from "@/issueStore";
+import { navigateToIssue } from "@/lib/beads";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -56,7 +57,12 @@ export function IssueHoverCard({ issue, children, side = "bottom", align = "star
           </div>
 
           {/* Title */}
-          <p className="text-sm font-medium leading-snug">{issue.title}</p>
+          <button
+            onClick={() => navigateToIssue(issue.id)}
+            className="text-sm font-medium leading-snug text-left hover:underline cursor-pointer"
+          >
+            {issue.title}
+          </button>
 
           {/* Description */}
           {issue.description && (
