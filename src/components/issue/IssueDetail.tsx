@@ -222,8 +222,12 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
         </SidebarField>
         {issue.parent && (
           <SidebarField label="Parent">
-            <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline">
-              <code className="text-xs">{issue.parent}</code>
+            <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline text-left">
+              <code className="text-xs text-muted-foreground">{issue.parent}</code>
+              {(() => {
+                const parentDep = issue.dependencies?.find((d) => d.id === issue.parent);
+                return parentDep ? <p className="text-sm mt-0.5">{parentDep.title}</p> : null;
+              })()}
             </button>
           </SidebarField>
         )}
