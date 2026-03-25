@@ -149,7 +149,8 @@ function RelatedIssueRow({ issue }: { issue: BeadsRelatedIssue }) {
 
 function DetailsTab({ issue }: { issue: BeadsIssue }) {
   const hasLabels = issue.labels && issue.labels.length > 0;
-  const hasDependencies = issue.dependencies && issue.dependencies.length > 0;
+  const filteredDeps = issue.dependencies?.filter((dep) => dep.id !== issue.parent) ?? [];
+  const hasDependencies = filteredDeps.length > 0;
   const hasDependents = issue.dependents && issue.dependents.length > 0;
 
   return (
@@ -165,7 +166,7 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
         {hasDependencies && (
           <Section title="Dependencies">
             <div className="space-y-0.5">
-              {issue.dependencies!.map((dep) => (
+              {filteredDeps.map((dep) => (
                 <RelatedIssueRow key={dep.id} issue={dep} />
               ))}
             </div>
