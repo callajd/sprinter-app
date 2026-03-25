@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "sprinter_app",
+  "project_id": "e6b05231-2f66-4d94-9f5a-5c1712c7c00d"
+}
