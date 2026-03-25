@@ -1,35 +1,10 @@
 import { useIssueStore, type BeadsIssue, type BeadsRelatedIssue } from "@/issueStore";
-import { executeEphemeralCommand } from "@/lib/tauri";
+import { navigateToIssue } from "@/lib/beads";
 import { getRepoRoot, getChangedFiles } from "@/lib/git";
 import { useDiffStore } from "@/diffStore";
 import { useAppStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-async function navigateToIssue(id: string) {
-  const store = useIssueStore.getState();
-  store.setIssueId(id);
-  store.reset();
-  store.setIsLoading(true);
-
-  try {
-    const result = await executeEphemeralCommand("bd show --json " + id);
-    if (result.exit_code === 0) {
-      const parsed: BeadsIssue[] = JSON.parse(result.stdout);
-      if (parsed.length > 0) {
-        store.setIssue(parsed[0]);
-      } else {
-        store.setError("No issue found for " + id);
-      }
-    } else {
-      store.setError(result.stderr || "Command failed with exit code " + result.exit_code);
-    }
-  } catch (err) {
-    store.setError(err instanceof Error ? err.message : "Failed to load issue");
-  } finally {
-    store.setIsLoading(false);
-  }
-}
 
 async function navigateToCommitDiff(commitHash: string) {
   const diffStore = useDiffStore.getState();
