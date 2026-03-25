@@ -207,7 +207,7 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
 // --- Commit tab ---
 
 function CommitTab({ commitHash }: { commitHash: string }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loaded, setLoaded] = useState<string | null>(null);
   const isLoadingFiles = useDiffStore((s) => s.isLoadingFiles);
   const error = useDiffStore((s) => s.error);
