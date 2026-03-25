@@ -41,7 +41,7 @@ export function IssueHoverCard({ issue, children, side = "bottom", align = "star
 
   return (
     <HoverCard>
-      <HoverCardTrigger render={<div />} className="inline-block">
+      <HoverCardTrigger render={<div />} className="block">
         {children}
       </HoverCardTrigger>
       <HoverCardContent side={side} align={align} className="w-80">
