@@ -240,7 +240,7 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
               if (parentDep) {
                 return (
                   <IssueHoverCard issue={parentDep} side="left">
-                    <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline text-left">
+                    <button onClick={() => navigateToIssue(issue.parent!)} className="w-full text-left py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
                       <code className="text-xs text-muted-foreground">{issue.parent}</code>
                       <p className="text-sm mt-0.5">{parentDep.title}</p>
                     </button>
@@ -248,7 +248,7 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
                 );
               }
               return (
-                <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline">
+                <button onClick={() => navigateToIssue(issue.parent!)} className="w-full text-left py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
                   <code className="text-xs text-muted-foreground">{issue.parent}</code>
                 </button>
               );
