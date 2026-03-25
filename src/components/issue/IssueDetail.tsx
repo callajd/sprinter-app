@@ -1,7 +1,235 @@
-import { useIssueStore } from "@/issueStore";
+import { useIssueStore, type BeadsIssue, type BeadsRelatedIssue } from "@/issueStore";
+import { executeEphemeralCommand } from "@/lib/tauri";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+async function navigateToIssue(id: string) {
+  const store = useIssueStore.getState();
+  store.setIssueId(id);
+  store.reset();
+  store.setIsLoading(true);
+
+  try {
+    const result = await executeEphemeralCommand("bd show --json " + id);
+    if (result.exit_code === 0) {
+      const parsed: BeadsIssue[] = JSON.parse(result.stdout);
+      if (parsed.length > 0) {
+        store.setIssue(parsed[0]);
+      } else {
+        store.setError("No issue found for " + id);
+      }
+    } else {
+      store.setError(result.stderr || "Command failed with exit code " + result.exit_code);
+    }
+  } catch (err) {
+    store.setError(err instanceof Error ? err.message : "Failed to load issue");
+  } finally {
+    store.setIsLoading(false);
+  }
+}
+
+const priorityLabels: Record<number, string> = {
+  0: "P0 Critical",
+  1: "P1 High",
+  2: "P2 Medium",
+  3: "P3 Low",
+  4: "P4 Backlog",
+};
+
+const priorityColors: Record<number, string> = {
+  0: "bg-red-500/15 text-red-700 dark:text-red-400",
+  1: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  2: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  3: "bg-slate-500/15 text-slate-700 dark:text-slate-400",
+  4: "bg-slate-500/10 text-slate-500 dark:text-slate-500",
+};
+
+const statusColors: Record<string, string> = {
+  open: "bg-green-500/15 text-green-700 dark:text-green-400",
+  in_progress: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
+  closed: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
+  blocked: "bg-red-500/15 text-red-700 dark:text-red-400",
+};
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <Badge className={cn("border-0", statusColors[status] ?? "bg-muted text-muted-foreground")}>
+      {status.replace(/_/g, " ")}
+    </Badge>
+  );
+}
+
+function TypeBadge({ type }: { type: string }) {
+  return <Badge variant="outline">{type}</Badge>;
+}
+
+function PriorityBadge({ priority }: { priority: number }) {
+  return (
+    <Badge className={cn("border-0", priorityColors[priority] ?? "bg-muted text-muted-foreground")}>
+      {priorityLabels[priority] ?? `P${priority}`}
+    </Badge>
+  );
+}
+
+function MetadataRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-3">
+      <span className="text-xs text-muted-foreground w-20 shrink-0 text-right">{label}</span>
+      <div className="text-sm">{children}</div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function RelatedIssueRow({ issue }: { issue: BeadsRelatedIssue }) {
+  return (
+    <button
+      onClick={() => navigateToIssue(issue.id)}
+      className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors text-left cursor-pointer"
+    >
+      <StatusBadge status={issue.status} />
+      <code className="text-xs text-muted-foreground shrink-0">{issue.id}</code>
+      <span className="text-sm truncate">{issue.title}</span>
+      {issue.dependency_type !== "parent-child" && (
+        <span className="text-xs text-muted-foreground ml-auto shrink-0">{issue.dependency_type}</span>
+      )}
+    </button>
+  );
+}
+
+function IssueContent({ issue }: { issue: BeadsIssue }) {
+  const hasLabels = issue.labels && issue.labels.length > 0;
+  const hasDependencies = issue.dependencies && issue.dependencies.length > 0;
+  const hasDependents = issue.dependents && issue.dependents.length > 0;
+
+  return (
+    <div className="flex-1 p-6 min-h-0 overflow-auto space-y-6">
+      {/* Header */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <code className="text-sm text-muted-foreground">{issue.id}</code>
+          <StatusBadge status={issue.status} />
+          <TypeBadge type={issue.issue_type} />
+          <PriorityBadge priority={issue.priority} />
+        </div>
+        <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
+      </div>
+
+      {/* Metadata */}
+      <div className="space-y-1.5 border-l-2 border-border pl-4">
+        {issue.assignee && <MetadataRow label="Assignee">{issue.assignee}</MetadataRow>}
+        {issue.created_by && <MetadataRow label="Created by">{issue.created_by}</MetadataRow>}
+        <MetadataRow label="Created">{formatDate(issue.created_at)}</MetadataRow>
+        <MetadataRow label="Updated">{formatDate(issue.updated_at)}</MetadataRow>
+        {issue.closed_at && (
+          <MetadataRow label="Closed">
+            {formatDate(issue.closed_at)}
+            {issue.close_reason && <span className="text-muted-foreground ml-1">({issue.close_reason})</span>}
+          </MetadataRow>
+        )}
+        {issue.parent && (
+          <MetadataRow label="Parent">
+            <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline">
+              <code className="text-xs">{issue.parent}</code>
+            </button>
+          </MetadataRow>
+        )}
+      </div>
+
+      {/* Labels */}
+      {hasLabels && (
+        <Section title="Labels">
+          <div className="flex gap-1.5 flex-wrap">
+            {issue.labels!.map((label) => (
+              <Badge key={label} variant="secondary" className="font-mono text-xs">
+                {label}
+              </Badge>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Description */}
+      {issue.description && (
+        <Section title="Description">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+            {issue.description}
+          </div>
+        </Section>
+      )}
+
+      {/* Notes */}
+      {issue.notes && (
+        <Section title="Notes">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+            {issue.notes}
+          </div>
+        </Section>
+      )}
+
+      {/* Design */}
+      {issue.design && (
+        <Section title="Design">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+            {issue.design}
+          </div>
+        </Section>
+      )}
+
+      {/* Acceptance Criteria */}
+      {issue.acceptance && (
+        <Section title="Acceptance Criteria">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+            {issue.acceptance}
+          </div>
+        </Section>
+      )}
+
+      {/* Dependencies */}
+      {hasDependencies && (
+        <Section title="Dependencies">
+          <div className="space-y-0.5">
+            {issue.dependencies!.map((dep) => (
+              <RelatedIssueRow key={dep.id} issue={dep} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Dependents */}
+      {hasDependents && (
+        <Section title="Dependents">
+          <div className="space-y-0.5">
+            {issue.dependents!.map((dep) => (
+              <RelatedIssueRow key={dep.id} issue={dep} />
+            ))}
+          </div>
+        </Section>
+      )}
+    </div>
+  );
+}
 
 export function IssueDetail() {
-  const output = useIssueStore((s) => s.output);
+  const issue = useIssueStore((s) => s.issue);
   const error = useIssueStore((s) => s.error);
   const isLoading = useIssueStore((s) => s.isLoading);
 
@@ -23,12 +251,8 @@ export function IssueDetail() {
     );
   }
 
-  if (output) {
-    return (
-      <div className="flex-1 p-4 min-h-0 overflow-auto">
-        <pre className="font-mono text-sm whitespace-pre-wrap">{output}</pre>
-      </div>
-    );
+  if (issue) {
+    return <IssueContent issue={issue} />;
   }
 
   return (
