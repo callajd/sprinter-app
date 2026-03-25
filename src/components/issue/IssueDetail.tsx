@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useIssueStore, type BeadsIssue, type BeadsRelatedIssue } from "@/issueStore";
 import { navigateToIssue } from "@/lib/beads";
 import { getRepoRoot, getChangedFiles } from "@/lib/git";
+import { StackedDiffView } from "@/components/diff/StackedDiffView";
 import { useDiffStore } from "@/diffStore";
 import { DiffFileList } from "@/components/diff/DiffFileList";
 import { DiffEditorPanel } from "@/components/diff/DiffEditorPanel";
@@ -261,6 +262,10 @@ function CommitTab({ commitHash }: { commitHash: string }) {
     );
   }
 
+  const repoPath = useDiffStore((s) => s.repoPath);
+  const sourceBranch = useDiffStore((s) => s.sourceBranch);
+  const targetBranch = useDiffStore((s) => s.targetBranch);
+
   return (
     <div className="flex flex-1 min-h-0">
       {sidebarOpen && (
@@ -274,16 +279,22 @@ function CommitTab({ commitHash }: { commitHash: string }) {
           <DiffFileList />
         </div>
       )}
-      <div className="flex-1 flex flex-col min-h-0">
-        {!sidebarOpen && (
+      {sidebarOpen ? (
+        <div className="flex-1 flex flex-col min-h-0">
+          <DiffEditorPanel />
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col min-h-0">
           <div className="px-2 py-1 border-b border-border">
             <Button variant="ghost" size="icon-xs" onClick={() => setSidebarOpen(true)} title="Expand file tree">
               <PanelLeftOpen className="size-3.5" />
             </Button>
           </div>
-        )}
-        <DiffEditorPanel />
-      </div>
+          {repoPath && sourceBranch && targetBranch && (
+            <StackedDiffView repoPath={repoPath} source={sourceBranch} target={targetBranch} />
+          )}
+        </div>
+      )}
     </div>
   );
 }

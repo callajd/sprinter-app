@@ -46,6 +46,14 @@ async function runGitCommand(repoPath: string, args: string): Promise<string> {
   return result.stdout;
 }
 
+export async function getUnifiedDiff(
+  repoPath: string,
+  source: string,
+  target: string
+): Promise<string> {
+  return runGitCommand(repoPath, `diff ${source}..${target}`);
+}
+
 export async function getRepoRoot(): Promise<string> {
   const result = await executeEphemeralCommand("git rev-parse --show-toplevel");
   if (result.exit_code !== 0) {
