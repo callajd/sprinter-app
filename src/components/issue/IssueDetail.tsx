@@ -57,19 +57,19 @@ function formatDate(iso: string): string {
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <Badge className={cn("border-0", statusColors[status] ?? "bg-muted text-muted-foreground")}>
+    <Badge className={cn("border-0 uppercase", statusColors[status] ?? "bg-muted text-muted-foreground")}>
       {status.replace(/_/g, " ")}
     </Badge>
   );
 }
 
 function TypeBadge({ type }: { type: string }) {
-  return <Badge variant="outline">{type}</Badge>;
+  return <Badge variant="outline" className="uppercase">{type}</Badge>;
 }
 
 function PriorityBadge({ priority }: { priority: number }) {
   return (
-    <Badge className={cn("border-0", priorityColors[priority] ?? "bg-muted text-muted-foreground")}>
+    <Badge className={cn("border-0 uppercase", priorityColors[priority] ?? "bg-muted text-muted-foreground")}>
       {priorityLabels[priority] ?? `P${priority}`}
     </Badge>
   );
