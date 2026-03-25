@@ -46,13 +46,13 @@ function formatDate(iso: string): string {
 
 function Timeline({ events }: { events: { label: string; date: string; color: string }[] }) {
   return (
-    <div className="relative pl-4">
+    <div className="relative pl-5">
       {/* Vertical line */}
-      <div className="absolute left-[5px] top-1 bottom-1 w-px bg-border" />
+      <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-border rounded-full" />
       <div className="space-y-3">
         {events.map((event, i) => (
           <div key={i} className="relative flex items-center gap-2">
-            <div className={cn("absolute left-[-13px] size-2.5 rounded-full", event.color)} />
+            <div className={cn("absolute left-[-15px] size-2.5 rounded-full", event.color)} />
             <span className="text-[11px] font-medium text-muted-foreground">{event.label}</span>
             <span className="text-sm">{formatDate(event.date)}</span>
           </div>
