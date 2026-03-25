@@ -39,11 +39,7 @@ function parseDiff(raw: string): FileDiff[] {
 
 function DiffLine({ line }: { line: string }) {
   if (line.startsWith("@@")) {
-    return (
-      <div className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-3 py-0.5 font-mono">
-        {line}
-      </div>
-    );
+    return null;
   }
   if (line.startsWith("+") && !line.startsWith("+++")) {
     return (
