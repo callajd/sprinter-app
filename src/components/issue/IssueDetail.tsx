@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { TranscriptTab } from "@/components/issue/TranscriptTab";
-import { PanelLeftClose, PanelLeftOpen, Info, MessageSquareText, GitCommit } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Info, MessageSquareText, GitCommit, CircleDot, CircleCheckBig, CirclePause, CircleX } from "lucide-react";
 
 // --- Helpers ---
 
@@ -36,13 +36,6 @@ const priorityColors: Record<number, string> = {
   4: "bg-slate-500/10 text-slate-500 dark:text-slate-500",
 };
 
-const statusColors: Record<string, string> = {
-  open: "bg-green-500/15 text-green-700 dark:text-green-400",
-  in_progress: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
-  closed: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
-  blocked: "bg-red-500/15 text-red-700 dark:text-red-400",
-};
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
@@ -55,12 +48,17 @@ function formatDate(iso: string): string {
 
 // --- Small components ---
 
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <Badge className={cn("border-0 uppercase", statusColors[status] ?? "bg-muted text-muted-foreground")}>
-      {status.replace(/_/g, " ")}
-    </Badge>
-  );
+const statusIcons: Record<string, { icon: typeof CircleDot; color: string }> = {
+  open: { icon: CircleDot, color: "text-green-600 dark:text-green-400" },
+  in_progress: { icon: CirclePause, color: "text-yellow-600 dark:text-yellow-400" },
+  closed: { icon: CircleCheckBig, color: "text-purple-600 dark:text-purple-400" },
+  blocked: { icon: CircleX, color: "text-red-600 dark:text-red-400" },
+};
+
+function StatusIcon({ status }: { status: string }) {
+  const config = statusIcons[status] ?? { icon: CircleDot, color: "text-muted-foreground" };
+  const Icon = config.icon;
+  return <Icon className={cn("size-5", config.color)} />;
 }
 
 function TypeBadge({ type }: { type: string }) {
@@ -99,7 +97,7 @@ function RelatedIssueRow({ issue }: { issue: BeadsRelatedIssue }) {
       onClick={() => navigateToIssue(issue.id)}
       className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors text-left cursor-pointer"
     >
-      <StatusBadge status={issue.status} />
+      <StatusIcon status={issue.status} />
       <code className="text-xs text-muted-foreground shrink-0">{issue.id}</code>
       <span className="text-sm truncate">{issue.title}</span>
       {issue.dependency_type !== "parent-child" && (
@@ -325,7 +323,7 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
         </div>
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
-          <StatusBadge status={issue.status} />
+          <StatusIcon status={issue.status} />
         </div>
       </div>
 
