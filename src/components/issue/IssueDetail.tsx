@@ -115,7 +115,7 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
   const hasDependents = issue.dependents && issue.dependents.length > 0;
 
   return (
-    <div className="p-6 space-y-6 overflow-auto">
+    <div className="space-y-6">
       {/* Metadata */}
       <div className="space-y-1.5 border-l-2 border-border pl-4">
         {issue.assignee && <MetadataRow label="Assignee">{issue.assignee}</MetadataRow>}
@@ -322,10 +322,10 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
             <TabsTrigger value="commit" disabled={!commitHash}>Commit</TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="details" className="flex-1 min-h-0 overflow-auto">
+        <TabsContent value="details" className="flex-1 min-h-0 overflow-auto p-6">
           <DetailsTab issue={issue} />
         </TabsContent>
-        <TabsContent value="commit" className="flex-1 min-h-0 flex flex-col">
+        <TabsContent value="commit" className="flex-1 min-h-0 flex flex-col p-6">
           {commitHash && <CommitTab commitHash={commitHash} />}
         </TabsContent>
       </Tabs>
