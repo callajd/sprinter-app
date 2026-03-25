@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { getUnifiedDiff } from "@/lib/git";
-import { cn } from "@/lib/utils";
 
 interface FileDiff {
   header: string;
@@ -74,8 +73,8 @@ function DiffLine({ line }: { line: string }) {
 
 function FileSection({ file }: { file: FileDiff }) {
   return (
-    <div className="border border-border rounded-md overflow-hidden">
-      <div className="sticky top-0 z-10 bg-muted px-3 py-1.5 border-b border-border">
+    <div>
+      <div className="sticky top-0 z-10 bg-muted px-3 py-1.5 border-y border-border">
         <span className="text-xs font-mono font-medium">{file.path}</span>
       </div>
       <div className="leading-5">
@@ -146,7 +145,7 @@ export function StackedDiffView({ repoPath, source, target }: StackedDiffViewPro
   }
 
   return (
-    <div className={cn("flex-1 overflow-auto space-y-4")}>
+    <div className="flex-1 overflow-auto">
       {files.map((file, i) => (
         <FileSection key={i} file={file} />
       ))}
