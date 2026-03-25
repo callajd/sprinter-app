@@ -146,6 +146,11 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
         )}
       </div>
 
+      {/* Priority */}
+      <Section title="Priority">
+        <PriorityBadge priority={issue.priority} />
+      </Section>
+
       {/* Labels */}
       {hasLabels && (
         <Section title="Labels">
@@ -317,7 +322,6 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
         <div className="flex items-center gap-2 flex-wrap">
           <code className="text-sm text-muted-foreground">{issue.id}</code>
           <TypeBadge type={issue.issue_type} />
-          <PriorityBadge priority={issue.priority} />
         </div>
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
