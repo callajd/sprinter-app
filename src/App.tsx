@@ -1,50 +1,63 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useEffect } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { CommandInput } from "@/components/CommandInput";
+import { CommandList } from "@/components/CommandList";
+import { CommandDetail } from "@/components/CommandDetail";
+import { ViewNav } from "@/components/ViewNav";
+import { DiffViewer } from "@/components/diff/DiffViewer";
+import { IssueViewer } from "@/components/issue/IssueViewer";
+import { useEventListeners } from "@/hooks/useEventListeners";
+import { useAppStore } from "@/store";
+import { listCommands } from "@/lib/tauri";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  useEventListeners();
+  const activeView = useAppStore((s) => s.activeView);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  // Load existing commands on mount
+  useEffect(() => {
+    listCommands()
+      .then((commands) => {
+        useAppStore.getState().setCommands(commands);
+      })
+      .catch((err) => {
+        console.error("Failed to load commands:", err);
+      });
+
+    // Dismiss splash screen
+    const splash = document.getElementById("splash");
+    if (splash) {
+      splash.classList.add("hidden");
+    }
+  }, []);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <TooltipProvider>
+      <div className="h-screen flex flex-col bg-background text-foreground">
+        <ViewNav />
+        <div className="flex-1 flex min-h-0">
+          {activeView === "commands" && (
+            <>
+              {/* Sidebar */}
+              <div className="w-80 border-r border-border flex flex-col">
+                <CommandInput />
+                <CommandList />
+              </div>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+              {/* Main panel */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <CommandDetail />
+              </div>
+            </>
+          )}
+          {activeView === "diff" && <DiffViewer />}
+          {activeView === "issue" && <IssueViewer />}
+        </div>
+
+        <Toaster position="bottom-right" />
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    </TooltipProvider>
   );
 }
 
