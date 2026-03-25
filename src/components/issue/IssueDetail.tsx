@@ -73,11 +73,11 @@ function PriorityBadge({ priority }: { priority: number }) {
   );
 }
 
-function MetadataRow({ label, children }: { label: string; children: React.ReactNode }) {
+function SidebarField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-3">
-      <span className="text-xs text-muted-foreground w-20 shrink-0 text-right">{label}</span>
-      <div className="text-sm">{children}</div>
+    <div className="py-2 border-b border-border/50">
+      <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</div>
+      <div>{children}</div>
     </div>
   );
 }
@@ -115,101 +115,92 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
   const hasDependents = issue.dependents && issue.dependents.length > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Description */}
-      {issue.description && (
-        <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
-          {issue.description}
-        </div>
-      )}
-
-      {/* Metadata */}
-      <div className="space-y-1.5 border-l-2 border-border pl-4">
-        {issue.assignee && <MetadataRow label="Assignee">{issue.assignee}</MetadataRow>}
-        {issue.created_by && <MetadataRow label="Created by">{issue.created_by}</MetadataRow>}
-        <MetadataRow label="Created">{formatDate(issue.created_at)}</MetadataRow>
-        <MetadataRow label="Updated">{formatDate(issue.updated_at)}</MetadataRow>
-        {issue.closed_at && (
-          <MetadataRow label="Closed">
-            {formatDate(issue.closed_at)}
-            {issue.close_reason && <span className="text-muted-foreground ml-1">({issue.close_reason})</span>}
-          </MetadataRow>
+    <div className="flex gap-6 min-h-0">
+      {/* Left column — description & long-form content */}
+      <div className="flex-1 min-w-0 space-y-6">
+        {issue.description && (
+          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+            {issue.description}
+          </div>
         )}
-        {issue.parent && (
-          <MetadataRow label="Parent">
-            <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline">
-              <code className="text-xs">{issue.parent}</code>
-            </button>
-          </MetadataRow>
+
+        {issue.notes && (
+          <Section title="Notes">
+            <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+              {issue.notes}
+            </div>
+          </Section>
+        )}
+
+        {issue.design && (
+          <Section title="Design">
+            <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+              {issue.design}
+            </div>
+          </Section>
+        )}
+
+        {issue.acceptance && (
+          <Section title="Acceptance Criteria">
+            <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+              {issue.acceptance}
+            </div>
+          </Section>
         )}
       </div>
 
-      {/* Priority */}
-      <Section title="Priority">
-        <PriorityBadge priority={issue.priority} />
-      </Section>
-
-      {/* Labels */}
-      {hasLabels && (
-        <Section title="Labels">
-          <div className="flex gap-1.5 flex-wrap">
-            {issue.labels!.map((label) => (
-              <Badge key={label} variant="secondary" className="font-mono text-xs">
-                {label}
-              </Badge>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* Notes */}
-      {issue.notes && (
-        <Section title="Notes">
-          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
-            {issue.notes}
-          </div>
-        </Section>
-      )}
-
-      {/* Design */}
-      {issue.design && (
-        <Section title="Design">
-          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
-            {issue.design}
-          </div>
-        </Section>
-      )}
-
-      {/* Acceptance Criteria */}
-      {issue.acceptance && (
-        <Section title="Acceptance Criteria">
-          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
-            {issue.acceptance}
-          </div>
-        </Section>
-      )}
-
-      {/* Dependencies */}
-      {hasDependencies && (
-        <Section title="Dependencies">
-          <div className="space-y-0.5">
-            {issue.dependencies!.map((dep) => (
-              <RelatedIssueRow key={dep.id} issue={dep} />
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* Dependents */}
-      {hasDependents && (
-        <Section title="Dependents">
-          <div className="space-y-0.5">
-            {issue.dependents!.map((dep) => (
-              <RelatedIssueRow key={dep.id} issue={dep} />
-            ))}
-          </div>
-        </Section>
-      )}
+      {/* Right column — sidebar details */}
+      <div className="w-64 shrink-0 space-y-0.5">
+        <SidebarField label="Priority"><PriorityBadge priority={issue.priority} /></SidebarField>
+        {issue.assignee && <SidebarField label="Assignee"><span className="text-sm">{issue.assignee}</span></SidebarField>}
+        {issue.created_by && <SidebarField label="Created by"><span className="text-sm">{issue.created_by}</span></SidebarField>}
+        <SidebarField label="Created"><span className="text-sm">{formatDate(issue.created_at)}</span></SidebarField>
+        <SidebarField label="Updated"><span className="text-sm">{formatDate(issue.updated_at)}</span></SidebarField>
+        {issue.closed_at && (
+          <SidebarField label="Closed">
+            <span className="text-sm">
+              {formatDate(issue.closed_at)}
+              {issue.close_reason && <span className="text-muted-foreground ml-1">({issue.close_reason})</span>}
+            </span>
+          </SidebarField>
+        )}
+        {issue.parent && (
+          <SidebarField label="Parent">
+            <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline">
+              <code className="text-xs">{issue.parent}</code>
+            </button>
+          </SidebarField>
+        )}
+        {hasLabels && (
+          <SidebarField label="Labels">
+            <div className="flex gap-1 flex-wrap">
+              {issue.labels!.map((label) => (
+                <Badge key={label} variant="secondary" className="font-mono text-[10px]">
+                  {label}
+                </Badge>
+              ))}
+            </div>
+          </SidebarField>
+        )}
+        {hasDependencies && (
+          <SidebarField label="Dependencies">
+            <div className="space-y-1">
+              {issue.dependencies!.map((dep) => (
+                <RelatedIssueRow key={dep.id} issue={dep} />
+              ))}
+            </div>
+          </SidebarField>
+        )}
+        {hasDependents && (
+          <SidebarField label="Dependents">
+            <div className="space-y-1">
+              {issue.dependents!.map((dep) => (
+                <RelatedIssueRow key={dep.id} issue={dep} />
+              ))}
+            </div>
+          </SidebarField>
+        )}
+      </div>
     </div>
   );
 }
