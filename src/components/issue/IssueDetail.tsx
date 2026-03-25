@@ -118,6 +118,13 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
 
   return (
     <div className="space-y-6">
+      {/* Description */}
+      {issue.description && (
+        <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
+          {issue.description}
+        </div>
+      )}
+
       {/* Metadata */}
       <div className="space-y-1.5 border-l-2 border-border pl-4">
         {issue.assignee && <MetadataRow label="Assignee">{issue.assignee}</MetadataRow>}
@@ -315,15 +322,6 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
         </div>
         <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
       </div>
-
-      {/* Description */}
-      {issue.description && (
-        <div className="px-6 pt-4">
-          <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
-            {issue.description}
-          </div>
-        </div>
-      )}
 
       {/* Tabs */}
       <Tabs defaultValue="details" className="flex-1 min-h-0 flex flex-col mt-4">
