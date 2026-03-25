@@ -2,7 +2,7 @@ mod daemon_manager;
 mod grpc_client;
 
 use daemon_manager::DaemonManager;
-use grpc_client::{CommandEventJson, CommandRecordJson, CommandSpecJson};
+use grpc_client::{CommandEventJson, CommandRecordJson, CommandSpecJson, OutputChunkJson};
 use sprinter_proto::command_service_client::CommandServiceClient;
 use sprinter_proto::*;
 use std::sync::Arc;
@@ -33,7 +33,7 @@ async fn execute_command(
     state: State<'_, Arc<DaemonState>>,
     app: AppHandle,
     spec: CommandSpecJson,
-) -> Result<String, String> {
+) -> Result<serde_json::Value, String> {
     let mut client = state.get_client().await?;
 
     let proto_spec = spec.into_proto();
@@ -55,10 +55,11 @@ async fn execute_command(
 
     let command_id = first_event.command_id.clone();
 
-    // Emit the first event
-    if let Some(json_event) = CommandEventJson::from_proto(first_event) {
-        let _ = app.emit("command-event", &json_event);
-    }
+    // Extract started metadata for the return value
+    let (pid, started_at) = match &first_event.event {
+        Some(command_event::Event::Started(s)) => (Some(s.pid), Some(s.started_at.clone())),
+        _ => (None, None),
+    };
 
     // Spawn background task to forward remaining events
     tokio::spawn(async move {
@@ -69,7 +70,34 @@ async fn execute_command(
         }
     });
 
-    Ok(command_id)
+    Ok(serde_json::json!({
+        "command_id": command_id,
+        "pid": pid,
+        "started_at": started_at,
+    }))
+}
+
+#[tauri::command]
+async fn execute_ephemeral_command(
+    state: State<'_, Arc<DaemonState>>,
+    spec: CommandSpecJson,
+) -> Result<serde_json::Value, String> {
+    let mut client = state.get_client().await?;
+
+    let proto_spec = spec.into_proto();
+    let response = client
+        .execute_ephemeral_command(ExecuteEphemeralCommandRequest {
+            spec: Some(proto_spec),
+        })
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let result = response.into_inner();
+    Ok(serde_json::json!({
+        "exit_code": result.exit_code,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }))
 }
 
 #[tauri::command]
@@ -151,6 +179,35 @@ async fn list_commands(
 }
 
 #[tauri::command]
+async fn get_command_output(
+    state: State<'_, Arc<DaemonState>>,
+    command_id: String,
+) -> Result<Vec<OutputChunkJson>, String> {
+    let mut client = state.get_client().await?;
+
+    let response = client
+        .get_command(GetCommandRequest {
+            command_id,
+            include_output: true,
+        })
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let record = response
+        .into_inner()
+        .command
+        .ok_or("No command found")?;
+
+    let chunks = record
+        .output_chunks
+        .into_iter()
+        .map(OutputChunkJson::from_proto)
+        .collect();
+
+    Ok(chunks)
+}
+
+#[tauri::command]
 async fn daemon_status(state: State<'_, Arc<DaemonState>>) -> Result<serde_json::Value, String> {
     let mut client = state.get_client().await?;
 
@@ -181,8 +238,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             execute_command,
+            execute_ephemeral_command,
             kill_command,
             get_command,
+            get_command_output,
             list_commands,
             daemon_status,
         ])

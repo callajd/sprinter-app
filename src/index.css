@@ -6,31 +6,23 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-background: #0a0a0a;
-  --color-foreground: #fafafa;
-  --color-card: #111111;
-  --color-card-foreground: #fafafa;
-  --color-popover: #111111;
-  --color-popover-foreground: #fafafa;
-  --color-primary: #fafafa;
-  --color-primary-foreground: #0a0a0a;
-  --color-secondary: #1c1c1c;
-  --color-secondary-foreground: #fafafa;
-  --color-muted: #1c1c1c;
-  --color-muted-foreground: #a1a1aa;
-  --color-accent: #1c1c1c;
-  --color-accent-foreground: #fafafa;
-  --color-destructive: #7f1d1d;
-  --color-destructive-foreground: #fafafa;
-  --color-border: #27272a;
-  --color-input: #27272a;
-  --color-ring: #d4d4d8;
   --radius: 0.5rem;
 
-  --color-status-running: #4ec9b0;
-  --color-status-completed: #608b4e;
-  --color-status-failed: #f44747;
-  --color-status-killed: #ce9178;
+  --color-status-running: #2da87e;
+  --color-status-completed: #4a8c3f;
+  --color-status-failed: #dc3545;
+  --color-status-killed: #b5651d;
+
+  /* Exit code category colors */
+  --color-exit-success: #4a8c3f;
+  --color-exit-general-error: #dc3545;
+  --color-exit-usage-error: #a855f7;
+  --color-exit-not-executable: #e67e22;
+  --color-exit-not-found: #6366f1;
+  --color-exit-sigint: #e85d3a;
+  --color-exit-sigterm: #d97706;
+  --color-exit-sigkill: #ef4444;
+  --color-exit-signal: #c2410c;
 
   --font-mono: "SF Mono", "Cascadia Code", "Fira Code", Menlo, monospace;
 }

@@ -4,8 +4,11 @@ package sprinter.command.v1;
 // ─── Service ────────────────────────────────────────────────────────
 
 service CommandService {
-  // Execute a command and stream output in real-time
+  // Execute a persisted command and stream output in real-time
   rpc ExecuteCommand(ExecuteCommandRequest) returns (stream CommandEvent);
+
+  // Execute an ephemeral command — no DB persistence, no events, returns collected output
+  rpc ExecuteEphemeralCommand(ExecuteEphemeralCommandRequest) returns (ExecuteEphemeralCommandResponse);
 
   // Kill a running command
   rpc KillCommand(KillCommandRequest) returns (KillCommandResponse);
@@ -38,7 +41,7 @@ message ShellCommand {
   map<string, string> env = 3;
 }
 
-// ─── Execute ────────────────────────────────────────────────────────
+// ─── Execute (Persisted) ────────────────────────────────────────────
 
 message ExecuteCommandRequest {
   CommandSpec spec = 1;
@@ -81,6 +84,18 @@ message CommandCompleted {
 message CommandFailed {
   string error = 1;
   string failed_at = 2;
+}
+
+// ─── Execute (Ephemeral) ────────────────────────────────────────────
+
+message ExecuteEphemeralCommandRequest {
+  CommandSpec spec = 1;
+}
+
+message ExecuteEphemeralCommandResponse {
+  int32 exit_code = 1;
+  string stdout = 2;
+  string stderr = 3;
 }
 
 // ─── Kill ───────────────────────────────────────────────────────────

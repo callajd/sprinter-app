@@ -105,6 +105,7 @@ impl CommandEventJson {
 pub struct CommandRecordJson {
     pub id: String,
     pub command_line: String,
+    pub working_directory: String,
     pub status: String,
     pub exit_code: Option<i32>,
     pub pid: Option<i64>,
@@ -115,23 +116,47 @@ pub struct CommandRecordJson {
 
 impl CommandRecordJson {
     pub fn from_proto(record: CommandRecord) -> Self {
-        let command_line = record
+        let (command_line, working_directory) = record
             .spec
             .and_then(|s| s.spec)
             .map(|s| match s {
-                command_spec::Spec::Shell(shell) => shell.command_line,
+                command_spec::Spec::Shell(shell) => (shell.command_line, shell.working_directory),
             })
             .unwrap_or_default();
 
         Self {
             id: record.id,
             command_line,
+            working_directory,
             status: record.status,
             exit_code: record.exit_code,
             pid: record.pid,
             created_at: record.created_at,
             started_at: record.started_at,
             completed_at: record.completed_at,
+        }
+    }
+}
+
+/// JSON-friendly output chunk for the frontend
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OutputChunkJson {
+    pub stream: String,
+    pub data: String,
+    pub sequence: u64,
+}
+
+impl OutputChunkJson {
+    pub fn from_proto(chunk: OutputChunk) -> Self {
+        let stream = match chunk.stream {
+            x if x == OutputStream::Stdout as i32 => "stdout",
+            x if x == OutputStream::Stderr as i32 => "stderr",
+            _ => "stdout",
+        };
+        Self {
+            stream: stream.to_string(),
+            data: String::from_utf8_lossy(&chunk.data).to_string(),
+            sequence: chunk.sequence,
         }
     }
 }

@@ -2,8 +2,8 @@ use chrono::Utc;
 use sprinter_common::db::Database;
 use sprinter_common::models::{CommandRecord, CommandStatus, OutputChunkRecord};
 use sprinter_proto::{
-    CommandCompleted, CommandEvent, CommandFailed, CommandStarted, OutputChunk, OutputStream,
-    ShellCommand,
+    CommandCompleted, CommandEvent, CommandFailed, CommandSpec, CommandStarted, OutputChunk,
+    OutputStream, ShellCommand,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -42,9 +42,10 @@ impl CommandExecutor {
         let now = Utc::now().to_rfc3339();
 
         // Persist command to DB
-        let spec_json =
-            serde_json::to_string(&serde_json::json!({"shell": {"command_line": shell_cmd.command_line, "working_directory": shell_cmd.working_directory}}))
-                .map_err(|e| e.to_string())?;
+        let proto_spec = CommandSpec {
+            spec: Some(sprinter_proto::command_spec::Spec::Shell(shell_cmd.clone())),
+        };
+        let spec_json = serde_json::to_string(&proto_spec).map_err(|e| e.to_string())?;
 
         let record = CommandRecord {
             id: command_id.clone(),

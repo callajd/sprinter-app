@@ -12,7 +12,6 @@ const POLL_INTERVAL: Duration = Duration::from_millis(200);
 
 pub struct DaemonManager {
     data_dir: PathBuf,
-    daemon_binary: Option<PathBuf>,
 }
 
 impl DaemonManager {
@@ -21,43 +20,17 @@ impl DaemonManager {
             .map(|h| PathBuf::from(h).join(".sprinter"))
             .expect("HOME not set");
 
-        Self {
-            data_dir,
-            daemon_binary: None,
-        }
-    }
-
-    pub fn with_binary(mut self, path: PathBuf) -> Self {
-        self.daemon_binary = Some(path);
-        self
+        Self { data_dir }
     }
 
     fn port_file(&self) -> PathBuf {
         self.data_dir.join("daemon.port")
     }
 
-    fn pid_file(&self) -> PathBuf {
-        self.data_dir.join("daemon.pid")
-    }
-
     fn read_port(&self) -> Option<u16> {
         std::fs::read_to_string(self.port_file())
             .ok()
             .and_then(|s| s.trim().parse().ok())
-    }
-
-    fn read_pid(&self) -> Option<u32> {
-        std::fs::read_to_string(self.pid_file())
-            .ok()
-            .and_then(|s| s.trim().parse().ok())
-    }
-
-    fn is_daemon_alive(&self) -> bool {
-        if let Some(pid) = self.read_pid() {
-            unsafe { libc::kill(pid as i32, 0) == 0 }
-        } else {
-            false
-        }
     }
 
     pub async fn ensure_running(&self) -> Result<CommandServiceClient<Channel>, String> {
@@ -124,10 +97,6 @@ impl DaemonManager {
     }
 
     fn find_daemon_binary(&self) -> Result<PathBuf, String> {
-        if let Some(ref path) = self.daemon_binary {
-            return Ok(path.clone());
-        }
-
         // In development, look for it in the cargo target directory
         let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("target")

@@ -4,8 +4,57 @@ use sprinter_proto::*;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Instant;
+use tokio::io::AsyncReadExt;
+use tokio::process::Command as TokioCommand;
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
+
+/// Parse stored spec_json back into a CommandSpec protobuf.
+///
+/// prost's derived serde for oneof fields doesn't round-trip cleanly —
+/// serialization produces `{"shell":{...}}` but deserialization expects
+/// `{"spec":{"Shell":{...}}}`. We handle both formats here.
+fn parse_spec_json(json: &str) -> Option<CommandSpec> {
+    // Try direct prost serde deserialization first
+    if let Ok(spec) = serde_json::from_str::<CommandSpec>(json) {
+        if spec.spec.is_some() {
+            return Some(spec);
+        }
+    }
+
+    // Fallback: parse as generic JSON and reconstruct manually
+    let val: serde_json::Value = serde_json::from_str(json).ok()?;
+    let obj = val.as_object()?;
+
+    // Handle {"shell": {"command_line": "...", ...}} format
+    if let Some(shell) = obj.get("shell") {
+        let command_line = shell.get("command_line")?.as_str()?.to_string();
+        let working_directory = shell
+            .get("working_directory")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let env = shell
+            .get("env")
+            .and_then(|v| v.as_object())
+            .map(|m| {
+                m.iter()
+                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        return Some(CommandSpec {
+            spec: Some(command_spec::Spec::Shell(ShellCommand {
+                command_line,
+                working_directory,
+                env,
+            })),
+        });
+    }
+
+    None
+}
 
 type EventStream = Pin<Box<dyn Stream<Item = Result<CommandEvent, Status>> + Send>>;
 
@@ -53,6 +102,62 @@ impl CommandService for CommandServiceImpl {
         };
 
         Ok(Response::new(Box::pin(stream)))
+    }
+
+    async fn execute_ephemeral_command(
+        &self,
+        request: Request<ExecuteEphemeralCommandRequest>,
+    ) -> Result<Response<ExecuteEphemeralCommandResponse>, Status> {
+        let req = request.into_inner();
+        let spec = req.spec.ok_or(Status::invalid_argument("missing spec"))?;
+
+        let shell_cmd = match spec.spec {
+            Some(command_spec::Spec::Shell(shell)) => shell,
+            None => return Err(Status::invalid_argument("missing command spec variant")),
+        };
+
+        let mut cmd = TokioCommand::new("sh");
+        cmd.arg("-c").arg(&shell_cmd.command_line);
+
+        if !shell_cmd.working_directory.is_empty() {
+            cmd.current_dir(&shell_cmd.working_directory);
+        }
+
+        for (k, v) in &shell_cmd.env {
+            cmd.env(k, v);
+        }
+
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::piped());
+
+        let mut child = cmd.spawn().map_err(|e| Status::internal(e.to_string()))?;
+
+        let mut stdout_buf = Vec::new();
+        let mut stderr_buf = Vec::new();
+
+        if let Some(mut stdout) = child.stdout.take() {
+            stdout
+                .read_to_end(&mut stdout_buf)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
+        }
+        if let Some(mut stderr) = child.stderr.take() {
+            stderr
+                .read_to_end(&mut stderr_buf)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
+        }
+
+        let status = child
+            .wait()
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(ExecuteEphemeralCommandResponse {
+            exit_code: status.code().unwrap_or(-1),
+            stdout: String::from_utf8_lossy(&stdout_buf).to_string(),
+            stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
+        }))
     }
 
     async fn kill_command(
@@ -105,7 +210,7 @@ impl CommandService for CommandServiceImpl {
             vec![]
         };
 
-        let spec: Option<CommandSpec> = serde_json::from_str(&record.spec_json).ok();
+        let spec = parse_spec_json(&record.spec_json);
 
         Ok(Response::new(GetCommandResponse {
             command: Some(CommandRecord {
@@ -143,7 +248,7 @@ impl CommandService for CommandServiceImpl {
         let commands = records
             .into_iter()
             .map(|r| {
-                let spec: Option<CommandSpec> = serde_json::from_str(&r.spec_json).ok();
+                let spec = parse_spec_json(&r.spec_json);
                 CommandRecord {
                     id: r.id,
                     spec,
@@ -230,5 +335,39 @@ impl CommandService for CommandServiceImpl {
             uptime_seconds: self.started_at.elapsed().as_secs(),
             running_commands: running_cmds.len() as u32,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_spec_json_stored_format() {
+        // This is the format actually stored in the DB by executor.rs
+        let json = r#"{"shell":{"command_line":"echo hello","working_directory":""}}"#;
+        let spec = parse_spec_json(json);
+        assert!(spec.is_some(), "should parse stored DB format");
+        let spec = spec.unwrap();
+        match spec.spec {
+            Some(command_spec::Spec::Shell(shell)) => {
+                assert_eq!(shell.command_line, "echo hello");
+            }
+            None => panic!("spec variant should be Shell"),
+        }
+    }
+
+    #[test]
+    fn test_parse_spec_json_with_env() {
+        let json = r#"{"shell":{"command_line":"ls","working_directory":"/tmp","env":{"FOO":"bar"}}}"#;
+        let spec = parse_spec_json(json).unwrap();
+        match spec.spec {
+            Some(command_spec::Spec::Shell(shell)) => {
+                assert_eq!(shell.command_line, "ls");
+                assert_eq!(shell.working_directory, "/tmp");
+                assert_eq!(shell.env.get("FOO").unwrap(), "bar");
+            }
+            None => panic!("spec variant should be Shell"),
+        }
     }
 }
