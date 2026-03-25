@@ -316,11 +316,13 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
       <div className="p-6 pb-0 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <code className="text-sm text-muted-foreground">{issue.id}</code>
-          <StatusBadge status={issue.status} />
           <TypeBadge type={issue.issue_type} />
           <PriorityBadge priority={issue.priority} />
         </div>
-        <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-semibold leading-tight">{issue.title}</h1>
+          <StatusBadge status={issue.status} />
+        </div>
       </div>
 
       {/* Tabs */}
