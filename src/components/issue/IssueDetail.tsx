@@ -1,5 +1,8 @@
 import { useIssueStore, type BeadsIssue, type BeadsRelatedIssue } from "@/issueStore";
 import { executeEphemeralCommand } from "@/lib/tauri";
+import { getRepoRoot, getChangedFiles } from "@/lib/git";
+import { useDiffStore } from "@/diffStore";
+import { useAppStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +28,30 @@ async function navigateToIssue(id: string) {
     store.setError(err instanceof Error ? err.message : "Failed to load issue");
   } finally {
     store.setIsLoading(false);
+  }
+}
+
+async function navigateToCommitDiff(commitHash: string) {
+  const diffStore = useDiffStore.getState();
+  diffStore.setError(null);
+  diffStore.setIsLoadingFiles(true);
+
+  try {
+    const repoPath = await getRepoRoot();
+    const source = commitHash + "~1";
+    const target = commitHash;
+
+    diffStore.setRepoPath(repoPath);
+    diffStore.setSourceBranch(source);
+    diffStore.setTargetBranch(target);
+
+    const files = await getChangedFiles(repoPath, source, target);
+    diffStore.setFiles(files);
+    useAppStore.getState().setActiveView("diff");
+  } catch (err) {
+    diffStore.setError(err instanceof Error ? err.message : "Failed to load commit diff");
+  } finally {
+    diffStore.setIsLoadingFiles(false);
   }
 }
 
@@ -158,11 +185,23 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
       {hasLabels && (
         <Section title="Labels">
           <div className="flex gap-1.5 flex-wrap">
-            {issue.labels!.map((label) => (
-              <Badge key={label} variant="secondary" className="font-mono text-xs">
-                {label}
-              </Badge>
-            ))}
+            {issue.labels!.map((label) => {
+              const commitMatch = label.match(/^commit:(.+)$/);
+              if (commitMatch) {
+                return (
+                  <button key={label} onClick={() => navigateToCommitDiff(commitMatch[1])} className="cursor-pointer">
+                    <Badge variant="secondary" className="font-mono text-xs hover:bg-accent transition-colors">
+                      {label}
+                    </Badge>
+                  </button>
+                );
+              }
+              return (
+                <Badge key={label} variant="secondary" className="font-mono text-xs">
+                  {label}
+                </Badge>
+              );
+            })}
           </div>
         </Section>
       )}

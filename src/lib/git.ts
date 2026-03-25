@@ -46,6 +46,14 @@ async function runGitCommand(repoPath: string, args: string): Promise<string> {
   return result.stdout;
 }
 
+export async function getRepoRoot(): Promise<string> {
+  const result = await executeEphemeralCommand("git rev-parse --show-toplevel");
+  if (result.exit_code !== 0) {
+    throw new Error("Not in a git repository");
+  }
+  return result.stdout.trim();
+}
+
 export async function validateRepo(repoPath: string): Promise<boolean> {
   try {
     await runGitCommand(repoPath, "rev-parse --git-dir");
