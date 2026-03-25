@@ -138,9 +138,6 @@ function RelatedIssueRow({ issue }: { issue: BeadsRelatedIssue }) {
       <StatusIcon status={issue.status} />
       <code className="text-xs text-muted-foreground shrink-0">{issue.id}</code>
       <span className="text-sm truncate">{issue.title}</span>
-      {issue.dependency_type !== "parent-child" && (
-        <span className="text-xs text-muted-foreground ml-auto shrink-0">{issue.dependency_type}</span>
-      )}
     </button>
   );
 }
