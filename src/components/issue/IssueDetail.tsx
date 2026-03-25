@@ -41,9 +41,25 @@ function formatDate(iso: string): string {
     month: "short",
     day: "numeric",
     year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
   });
+}
+
+function Timeline({ events }: { events: { label: string; date: string; color: string }[] }) {
+  return (
+    <div className="relative pl-4">
+      {/* Vertical line */}
+      <div className="absolute left-[5px] top-1 bottom-1 w-px bg-border" />
+      <div className="space-y-3">
+        {events.map((event, i) => (
+          <div key={i} className="relative flex items-center gap-2">
+            <div className={cn("absolute left-[-13px] size-2.5 rounded-full", event.color)} />
+            <span className="text-[11px] font-medium text-muted-foreground">{event.label}</span>
+            <span className="text-sm">{formatDate(event.date)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // --- Small components ---
@@ -154,16 +170,13 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
         <SidebarField label="Priority"><PriorityBadge priority={issue.priority} /></SidebarField>
         {issue.assignee && <SidebarField label="Assignee"><span className="text-sm">{issue.assignee}</span></SidebarField>}
         {issue.created_by && <SidebarField label="Created by"><span className="text-sm">{issue.created_by}</span></SidebarField>}
-        <SidebarField label="Created"><span className="text-sm">{formatDate(issue.created_at)}</span></SidebarField>
-        <SidebarField label="Updated"><span className="text-sm">{formatDate(issue.updated_at)}</span></SidebarField>
-        {issue.closed_at && (
-          <SidebarField label="Closed">
-            <span className="text-sm">
-              {formatDate(issue.closed_at)}
-              {issue.close_reason && <span className="text-muted-foreground ml-1">({issue.close_reason})</span>}
-            </span>
-          </SidebarField>
-        )}
+        <SidebarField label="Timeline">
+          <Timeline events={[
+            { label: "Created", date: issue.created_at, color: "bg-green-600 dark:bg-green-400" },
+            { label: "Updated", date: issue.updated_at, color: "bg-green-600 dark:bg-green-400" },
+            ...(issue.closed_at ? [{ label: "Closed", date: issue.closed_at, color: "bg-purple-600 dark:bg-purple-400" }] : []),
+          ]} />
+        </SidebarField>
         {issue.parent && (
           <SidebarField label="Parent">
             <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline">
