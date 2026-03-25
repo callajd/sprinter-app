@@ -9,6 +9,7 @@ import { DiffEditorPanel } from "@/components/diff/DiffEditorPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { TranscriptTab } from "@/components/issue/TranscriptTab";
 import { PanelLeftClose, PanelLeftOpen, Info, MessageSquareText, GitCommit, CircleDot, CircleCheckBig, CirclePause, CircleX } from "lucide-react";
@@ -62,10 +63,21 @@ function Timeline({ events }: { events: { label: string; date: string; color: st
       <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-border rounded-full" />
       <div className="space-y-3">
         {events.map((event, i) => (
-          <div key={i} className="relative flex items-center" title={`${event.label}: ${formatDateTime(event.date)}`}>
-            <div className={cn("absolute left-[-15px] size-2.5 rounded-full", event.color)} />
-            <span className="text-sm">{formatDate(event.date)}</span>
-          </div>
+          <HoverCard key={i}>
+            <HoverCardTrigger render={<div />} className="relative flex items-center cursor-default">
+              <div className={cn("absolute left-[-15px] size-2.5 rounded-full", event.color)} />
+              <span className="text-sm">{formatDate(event.date)}</span>
+            </HoverCardTrigger>
+            <HoverCardContent side="left" align="center" className="w-auto">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className={cn("size-2 rounded-full", event.color)} />
+                  <span className="text-xs font-semibold uppercase tracking-wider">{event.label}</span>
+                </div>
+                <p className="text-sm font-mono">{formatDateTime(event.date)}</p>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
         ))}
       </div>
     </div>
