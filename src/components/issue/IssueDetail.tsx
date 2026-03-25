@@ -326,10 +326,10 @@ function IssueContent({ issue }: { issue: BeadsIssue }) {
       {/* Tabs */}
       <Tabs defaultValue="details" className="flex-1 min-h-0 flex flex-col mt-4">
         <div className="px-6">
-          <TabsList variant="line">
-            <TabsTrigger value="details"><Info className="size-3.5" />Details</TabsTrigger>
-            <TabsTrigger value="transcript"><MessageSquareText className="size-3.5" />Transcript</TabsTrigger>
-            <TabsTrigger value="commit" disabled={!commitHash}><GitCommit className="size-3.5" />Commit</TabsTrigger>
+          <TabsList>
+            <TabsTrigger value="details" className="px-4"><Info className="size-3.5" />Details</TabsTrigger>
+            <TabsTrigger value="transcript" className="px-4"><MessageSquareText className="size-3.5" />Transcript</TabsTrigger>
+            <TabsTrigger value="commit" className="px-4" disabled={!commitHash}><GitCommit className="size-3.5" />Commit</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="details" className="flex-1 min-h-0 overflow-auto p-6">
