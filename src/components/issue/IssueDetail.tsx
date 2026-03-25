@@ -151,7 +151,10 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
   const hasLabels = issue.labels && issue.labels.length > 0;
   const filteredDeps = issue.dependencies?.filter((dep) => dep.id !== issue.parent) ?? [];
   const hasDependencies = filteredDeps.length > 0;
-  const hasDependents = issue.dependents && issue.dependents.length > 0;
+  const children = issue.dependents?.filter((dep) => dep.dependency_type === "parent-child") ?? [];
+  const dependents = issue.dependents?.filter((dep) => dep.dependency_type !== "parent-child") ?? [];
+  const hasChildren = children.length > 0;
+  const hasDependents = dependents.length > 0;
 
   return (
     <div className="flex gap-6 min-h-0">
@@ -173,10 +176,20 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
           </Section>
         )}
 
+        {hasChildren && (
+          <Section title="Children">
+            <div className="space-y-0.5">
+              {children.map((dep) => (
+                <RelatedIssueRow key={dep.id} issue={dep} />
+              ))}
+            </div>
+          </Section>
+        )}
+
         {hasDependents && (
           <Section title="Dependents">
             <div className="space-y-0.5">
-              {issue.dependents!.map((dep) => (
+              {dependents.map((dep) => (
                 <RelatedIssueRow key={dep.id} issue={dep} />
               ))}
             </div>
