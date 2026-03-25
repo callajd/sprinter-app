@@ -107,6 +107,18 @@ function buildTreeItems(
     }
   }
 
+  // Sort children: folders first, then alphabetical within each group
+  for (const item of Object.values(items)) {
+    if (item.children && item.children.length > 1) {
+      item.children.sort((a, b) => {
+        const aIsDir = items[a]?.isFolder ? 0 : 1;
+        const bIsDir = items[b]?.isFolder ? 0 : 1;
+        if (aIsDir !== bIsDir) return aIsDir - bIsDir;
+        return String(a).localeCompare(String(b));
+      });
+    }
+  }
+
   return items;
 }
 
