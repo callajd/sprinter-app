@@ -26,10 +26,12 @@ export interface BeadsIssue {
 export interface BeadsRelatedIssue {
   id: string;
   title: string;
+  description?: string;
   status: string;
   priority: number;
   issue_type: string;
   assignee?: string;
+  labels?: string[];
   dependency_type: string;
 }
 

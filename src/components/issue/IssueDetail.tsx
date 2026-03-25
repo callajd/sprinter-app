@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { TranscriptTab } from "@/components/issue/TranscriptTab";
+import { IssueHoverCard } from "@/components/issue/IssueHoverCard";
 import { PanelLeftClose, PanelLeftOpen, Info, MessageSquareText, GitCommit, CircleDot, CircleCheckBig, CirclePause, CircleX } from "lucide-react";
 
 // --- Helpers ---
@@ -131,14 +132,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function RelatedIssueRow({ issue }: { issue: BeadsRelatedIssue }) {
   return (
-    <button
-      onClick={() => navigateToIssue(issue.id)}
-      className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors text-left cursor-pointer"
-    >
-      <StatusIcon status={issue.status} />
-      <code className="text-xs text-muted-foreground shrink-0">{issue.id}</code>
-      <span className="text-sm truncate">{issue.title}</span>
-    </button>
+    <IssueHoverCard issue={issue}>
+      <button
+        onClick={() => navigateToIssue(issue.id)}
+        className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors text-left cursor-pointer"
+      >
+        <StatusIcon status={issue.status} />
+        <code className="text-xs text-muted-foreground shrink-0">{issue.id}</code>
+        <span className="text-sm truncate">{issue.title}</span>
+      </button>
+    </IssueHoverCard>
   );
 }
 
@@ -232,13 +235,24 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
         </SidebarField>
         {issue.parent && (
           <SidebarField label="Parent">
-            <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline text-left">
-              <code className="text-xs text-muted-foreground">{issue.parent}</code>
-              {(() => {
-                const parentDep = issue.dependencies?.find((d) => d.id === issue.parent);
-                return parentDep ? <p className="text-sm mt-0.5">{parentDep.title}</p> : null;
-              })()}
-            </button>
+            {(() => {
+              const parentDep = issue.dependencies?.find((d) => d.id === issue.parent);
+              if (parentDep) {
+                return (
+                  <IssueHoverCard issue={parentDep} side="left">
+                    <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline text-left">
+                      <code className="text-xs text-muted-foreground">{issue.parent}</code>
+                      <p className="text-sm mt-0.5">{parentDep.title}</p>
+                    </button>
+                  </IssueHoverCard>
+                );
+              }
+              return (
+                <button onClick={() => navigateToIssue(issue.parent!)} className="cursor-pointer hover:underline">
+                  <code className="text-xs text-muted-foreground">{issue.parent}</code>
+                </button>
+              );
+            })()}
           </SidebarField>
         )}
         {hasLabels && (
