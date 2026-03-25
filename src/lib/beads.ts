@@ -34,7 +34,7 @@ export async function loadIssues(showAll: boolean) {
   try {
     const cwd = await getCwd();
     const cmd = showAll
-      ? "bd list --limit 0 --json"
+      ? "bd list --all --limit 0 --json"
       : "bd list --status open --limit 0 --json";
     const result = await executeEphemeralCommand(cmd, cwd);
     if (result.exit_code === 0) {
