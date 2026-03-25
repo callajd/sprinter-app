@@ -162,6 +162,26 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
           </div>
         )}
 
+        {hasDependencies && (
+          <Section title="Dependencies">
+            <div className="space-y-0.5">
+              {issue.dependencies!.map((dep) => (
+                <RelatedIssueRow key={dep.id} issue={dep} />
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {hasDependents && (
+          <Section title="Dependents">
+            <div className="space-y-0.5">
+              {issue.dependents!.map((dep) => (
+                <RelatedIssueRow key={dep.id} issue={dep} />
+              ))}
+            </div>
+          </Section>
+        )}
+
         {issue.notes && (
           <Section title="Notes">
             <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-md p-4 border border-border/50">
@@ -213,24 +233,6 @@ function DetailsTab({ issue }: { issue: BeadsIssue }) {
                 <Badge key={label} variant="secondary" className="font-mono text-[10px]">
                   {label}
                 </Badge>
-              ))}
-            </div>
-          </SidebarField>
-        )}
-        {hasDependencies && (
-          <SidebarField label="Dependencies">
-            <div className="space-y-1">
-              {issue.dependencies!.map((dep) => (
-                <RelatedIssueRow key={dep.id} issue={dep} />
-              ))}
-            </div>
-          </SidebarField>
-        )}
-        {hasDependents && (
-          <SidebarField label="Dependents">
-            <div className="space-y-1">
-              {issue.dependents!.map((dep) => (
-                <RelatedIssueRow key={dep.id} issue={dep} />
               ))}
             </div>
           </SidebarField>
